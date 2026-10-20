@@ -3,6 +3,7 @@ package dev.silver.cobblemonduo;
 import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.api.pokedex.PokedexManager;
+import com.cobblemon.mod.common.api.pokedex.PokedexEntryProgress;
 import com.cobblemon.mod.common.api.pokedex.SpeciesDexRecord;
 import com.cobblemon.mod.common.api.storage.player.PlayerInstancedDataStoreTypes;
 import com.google.gson.JsonArray;
@@ -34,6 +35,8 @@ public final class DuoPokedex {
 
     public static void initialize() {
         CobblemonEvents.POKEDEX_DATA_CHANGED_POST.subscribe(event -> {
+            if (event.getKnowledge() == PokedexEntryProgress.ENCOUNTERED && !DuoConfig.INSTANCE.shareSeenPokemon) return;
+            if (event.getKnowledge() == PokedexEntryProgress.CAUGHT && !DuoConfig.INSTANCE.shareCaughtPokemon) return;
             UUID partner = CobblemonDuo.partnerOf(event.getPlayerUUID());
             if (partner == null) return;
             MinecraftServer server = CobblemonDuo.serverInstance();
@@ -51,7 +54,7 @@ public final class DuoPokedex {
 
     public static void synchronizePair(MinecraftServer server, UUID player) {
         UUID partner = CobblemonDuo.partnerOf(player);
-        if (partner == null || server == null) return;
+        if (partner == null || server == null || !DuoConfig.INSTANCE.mergePreviousPokedexEntries) return;
         try {
             var store = Cobblemon.INSTANCE.getPlayerDataManager();
             PokedexManager a = store.getPokedexData(player);
