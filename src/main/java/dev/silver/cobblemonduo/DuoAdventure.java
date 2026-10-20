@@ -108,6 +108,22 @@ public final class DuoAdventure {
         }
     }
 
+    /** Server-side reward entrypoint for cooperative activities. */
+    public static void grantExperience(UUID a, UUID b, int amount, String reason) {
+        if (amount <= 0 || !b.equals(CobblemonDuo.partnerOf(a))) return;
+        Progress p = PROGRESS.computeIfAbsent(key(a, b), k -> new Progress());
+        int oldLevel = level(p.xp);
+        p.xp += amount;
+        MinecraftServer server = CobblemonDuo.serverInstance();
+        if (server != null) {
+            ServerPlayerEntity first = server.getPlayerManager().getPlayer(a);
+            ServerPlayerEntity second = server.getPlayerManager().getPlayer(b);
+            if (first != null && second != null && level(p.xp) > oldLevel)
+                announce(first, second, "Your duo reached bond level " + level(p.xp) + "!");
+        }
+        save();
+    }
+
     /** Catching different species together charges team synergy, without AFK farming. */
     private static void onCatch(ServerPlayerEntity catcher, String species) {
         MinecraftServer server = catcher.getServer();
