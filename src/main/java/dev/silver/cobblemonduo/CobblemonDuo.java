@@ -41,7 +41,9 @@ public final class CobblemonDuo implements ModInitializer {
                 .then(literal("invite").then(argument("player", StringArgumentType.word()).executes(ctx -> invite(ctx.getSource(), StringArgumentType.getString(ctx, "player")))))
                 .then(literal("accept").executes(ctx -> accept(ctx.getSource())))
                 .then(literal("deny").executes(ctx -> deny(ctx.getSource())))
-                .then(literal("leave").executes(ctx -> leave(ctx.getSource())))
+                .then(literal("admin").requires(src -> src.hasPermissionLevel(2))
+                    .then(literal("disband").then(argument("player", StringArgumentType.word())
+                        .executes(ctx -> adminDisband(ctx.getSource(), StringArgumentType.getString(ctx, "player"))))))
                 .then(literal("info").executes(ctx -> info(ctx.getSource())))
                 .executes(ctx -> info(ctx.getSource()))
             )
@@ -86,14 +88,25 @@ public final class CobblemonDuo implements ModInitializer {
         say(p, "Invitation declined.");
         return 1;
     }
-    private static int leave(ServerCommandSource source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        ServerPlayerEntity p = player(source);
-        UUID other = PARTNERS.remove(p.getUuid());
-        if (other == null) { say(p, "You are not in a duo."); return 0; }
-        PARTNERS.remove(other); DuoAdventure.clear(p.getUuid(), other); save();
+    private static int adminDisband(ServerCommandSource source, String name) {
+        ServerPlayerEntity target = server.getPlayerManager().getPlayer(name);
+        if (target == null) {
+            source.sendError(Text.literal("Player must be online. Offline UUID support is planned."));
+            return 0;
+        }
+        UUID other = PARTNERS.get(target.getUuid());
+        if (other == null) {
+            source.sendError(Text.literal("That player is not in a duo."));
+            return 0;
+        }
+        PARTNERS.remove(target.getUuid());
+        PARTNERS.remove(other);
+        DuoAdventure.clear(target.getUuid(), other);
+        save();
+        say(target, "An administrator disbanded your duo.");
         ServerPlayerEntity partner = server.getPlayerManager().getPlayer(other);
-        if (partner != null) say(partner, p.getName().getString() + " ended your duo.");
-        say(p, "Duo ended.");
+        if (partner != null) say(partner, "An administrator disbanded your duo.");
+        source.sendFeedback(() -> Text.literal("Duo disbanded by administrator."), true);
         return 1;
     }
     private static int info(ServerCommandSource source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
