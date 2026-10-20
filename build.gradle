@@ -9,6 +9,7 @@ dependencies {
  modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
  modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
  modCompileOnly "maven.modrinth:MdwFAVRL:kF7CvxTo"
+ modLocalRuntime "maven.modrinth:MdwFAVRL:kF7CvxTo"
  compileOnly "org.jetbrains.kotlin:kotlin-stdlib:2.0.21"
 }
 processResources { inputs.property 'version', project.version; filesMatching('fabric.mod.json') { expand 'version': project.version } }
