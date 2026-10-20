@@ -2,6 +2,7 @@ package dev.silver.cobblemonduo;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -29,6 +30,8 @@ public final class DuoAdventure {
 
     public static void initialize() {
         ServerTickEvents.END_SERVER_TICK.register(DuoAdventure::tick);
+        CobblemonEvents.POKEMON_CAPTURED.subscribe(event ->
+            onCatch(event.getPlayer(), event.getPokemon().getSpecies().getResourceIdentifier().toString()));
     }
 
     public static void load(MinecraftServer server) {
@@ -68,6 +71,7 @@ public final class DuoAdventure {
         int level = level(p.xp);
         return "Bond level " + level + "/" + MAX_LEVEL + " | XP: " + p.xp +
             " | Together: " + p.minutes + " min | Expeditions: " + p.expeditions +
+            " | Catch combos: " + p.teamworkCombos +
             " | Next: " + (level == MAX_LEVEL ? "MAX" : xpForLevel(level + 1) + " XP");
     }
 
@@ -86,22 +90,62 @@ public final class DuoAdventure {
             String key = key(a.getUuid(), partnerId);
             if (!visited.add(key)) continue;
             ServerPlayerEntity b = server.getPlayerManager().getPlayer(partnerId);
-            if (b == null || a.getWorld() != b.getWorld() || a.squaredDistanceTo(b) > 64 * 64) continue;
+            if (b == null || a.getWorld() != b.getWorld() || a.squaredDistanceTo(b) > Math.pow(DuoConfig.INSTANCE.maximumDistanceBlocks, 2)) continue;
             // Both must be moving: idle/AFK proximity does not generate XP.
             if (!Boolean.TRUE.equals(moved.get(a.getUuid())) || !Boolean.TRUE.equals(moved.get(b.getUuid()))) continue;
             Progress p = PROGRESS.computeIfAbsent(key, k -> new Progress());
             int before = level(p.xp);
             p.minutes++;
-            p.xp += 5;
-            if (p.minutes % 15 == 0) {
+            p.xp += DuoConfig.INSTANCE.bondExperiencePerMinute;
+            if (p.minutes % DuoConfig.INSTANCE.expeditionMinutes == 0) {
                 p.expeditions++;
-                p.xp += 50;
-                announce(a,b,"Co-op expedition completed! +50 bond XP");
+                p.xp += DuoConfig.INSTANCE.expeditionExperienceBonus;
+                announce(a,b,"Co-op expedition completed! +" + DuoConfig.INSTANCE.expeditionExperienceBonus + " bond XP");
             }
             int after = level(p.xp);
             if (after > before) announce(a,b,"Your duo reached bond level " + after + "!");
             if (p.minutes % 5 == 0) save();
         }
+    }
+
+    /** Catching different species together charges team synergy, without AFK farming. */
+    private static void onCatch(ServerPlayerEntity catcher, String species) {
+        MinecraftServer server = catcher.getServer();
+        if (server == null) return;
+        UUID partnerId = CobblemonDuo.partnerOf(catcher.getUuid());
+        if (partnerId == null) return;
+        ServerPlayerEntity partner = server.getPlayerManager().getPlayer(partnerId);
+        if (partner == null || catcher.getWorld() != partner.getWorld()) return;
+        if (catcher.squaredDistanceTo(partner) > Math.pow(DuoConfig.INSTANCE.maximumDistanceBlocks, 2)) return;
+        Progress p = PROGRESS.computeIfAbsent(key(catcher.getUuid(), partnerId), k -> new Progress());
+        long day = System.currentTimeMillis() / 86_400_000L;
+        if (p.catchDay != day) {
+            p.catchDay = day;
+            p.catchesToday = new HashSet<>();
+            p.lastCatcher = null;
+            p.lastCatchTime = 0;
+        }
+        if (p.catchesToday == null) p.catchesToday = new HashSet<>();
+        if (p.catchesToday.size() >= DuoConfig.INSTANCE.dailyUniqueSpeciesLimit || !p.catchesToday.add(species)) return;
+
+        int previousLevel = level(p.xp);
+        p.xp += DuoConfig.INSTANCE.uniqueCatchExperience;
+        long now = System.currentTimeMillis();
+        String playerId = catcher.getUuid().toString();
+        if (p.lastCatcher != null && !p.lastCatcher.equals(playerId)
+            && now - p.lastCatchTime <= DuoConfig.INSTANCE.teamworkCatchWindowSeconds * 1000L) {
+            p.xp += DuoConfig.INSTANCE.teamworkCatchBonusExperience;
+            p.teamworkCombos++;
+            announce(catcher, partner, "Teamwork catch combo! +" + DuoConfig.INSTANCE.teamworkCatchBonusExperience + " bond XP");
+            p.lastCatcher = null; // each catch can be used in only one combo
+            p.lastCatchTime = 0;
+        } else {
+            p.lastCatcher = playerId;
+            p.lastCatchTime = now;
+        }
+        if (level(p.xp) > previousLevel)
+            announce(catcher, partner, "Your duo reached bond level " + level(p.xp) + "!");
+        save();
     }
 
     private static void announce(ServerPlayerEntity a, ServerPlayerEntity b, String message) {
@@ -122,6 +166,11 @@ public final class DuoAdventure {
         long xp;
         long minutes;
         long expeditions;
+        long teamworkCombos;
+        long catchDay;
+        Set<String> catchesToday = new HashSet<>();
+        String lastCatcher;
+        long lastCatchTime;
     }
     private record Stored(Map<String, Progress> progress) {}
 }
