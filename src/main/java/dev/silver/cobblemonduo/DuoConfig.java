@@ -22,6 +22,10 @@ public final class DuoConfig {
     public int dailyUniqueSpeciesLimit = 15;
     public int teamworkCatchWindowSeconds = 600;
     public int teamworkCatchBonusExperience = 40;
+    public int challengeDurationMinutes = 10;
+    public int challengeCooldownMinutes = 120;
+    public int challengeSpeciesPerPlayer = 2;
+    public int challengeRewardExperience = 300;
     public boolean shareSeenPokemon = true;
     public boolean shareCaughtPokemon = true;
     public boolean mergePreviousPokedexEntries = true;
@@ -43,6 +47,10 @@ public final class DuoConfig {
             INSTANCE.dailyUniqueSpeciesLimit = clamp(INSTANCE.dailyUniqueSpeciesLimit, 1, 200);
             INSTANCE.teamworkCatchWindowSeconds = clamp(INSTANCE.teamworkCatchWindowSeconds, 30, 3600);
             INSTANCE.teamworkCatchBonusExperience = clamp(INSTANCE.teamworkCatchBonusExperience, 0, 1000);
+            INSTANCE.challengeDurationMinutes = clamp(INSTANCE.challengeDurationMinutes, 2, 60);
+            INSTANCE.challengeCooldownMinutes = clamp(INSTANCE.challengeCooldownMinutes, 10, 1440);
+            INSTANCE.challengeSpeciesPerPlayer = clamp(INSTANCE.challengeSpeciesPerPlayer, 1, 8);
+            INSTANCE.challengeRewardExperience = clamp(INSTANCE.challengeRewardExperience, 0, 2000);
             Files.createDirectories(file.getParent());
             Files.writeString(file, JSON.toJson(INSTANCE));
         } catch (Exception e) {
