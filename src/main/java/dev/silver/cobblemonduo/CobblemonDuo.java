@@ -33,6 +33,7 @@ public final class CobblemonDuo implements ModInitializer {
         DuoConfig.load();
         DuoAdventure.initialize();
         DuoPokedex.initialize();
+        DuoChallenge.initialize();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, currentServer) -> {
             ServerPlayerEntity joined = handler.getPlayer();
             NAMES.put(joined.getUuid(), joined.getName().getString());
@@ -43,9 +44,10 @@ public final class CobblemonDuo implements ModInitializer {
             storage = s.getSavePath(WorldSavePath.ROOT).resolve("cobblemon-duo.json");
             load();
             DuoAdventure.load(s);
+            DuoChallenge.load(s);
 
         });
-        ServerLifecycleEvents.SERVER_STOPPING.register(s -> { save(); DuoAdventure.save(); server = null; });
+        ServerLifecycleEvents.SERVER_STOPPING.register(s -> { save(); DuoAdventure.save(); DuoChallenge.save(); server = null; });
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) ->
             dispatcher.register(literal("duo")
                 .then(literal("invite").then(argument("player", StringArgumentType.word()).executes(ctx -> invite(ctx.getSource(), StringArgumentType.getString(ctx, "player")))))
@@ -55,6 +57,12 @@ public final class CobblemonDuo implements ModInitializer {
                     .then(literal("disband").then(argument("player", StringArgumentType.word())
                         .executes(ctx -> adminDisband(ctx.getSource(), StringArgumentType.getString(ctx, "player"))))))
                 .then(literal("info").executes(ctx -> info(ctx.getSource())))
+                .then(literal("challenge")
+                    .then(literal("start").executes(ctx -> DuoChallenge.start(player(ctx.getSource()))))
+                    .then(literal("accept").executes(ctx -> DuoChallenge.accept(player(ctx.getSource()))))
+                    .then(literal("deny").executes(ctx -> DuoChallenge.deny(player(ctx.getSource()))))
+                    .then(literal("status").executes(ctx -> DuoChallenge.status(player(ctx.getSource()))))
+                    .executes(ctx -> DuoChallenge.status(player(ctx.getSource()))))
 
                 .executes(ctx -> info(ctx.getSource()))
             )
@@ -116,6 +124,7 @@ public final class CobblemonDuo implements ModInitializer {
         PARTNERS.remove(playerId);
         PARTNERS.remove(other);
         DuoAdventure.clear(playerId, other);
+        DuoChallenge.clear(playerId, other);
         save();
         ServerPlayerEntity first = server.getPlayerManager().getPlayer(playerId);
         ServerPlayerEntity second = server.getPlayerManager().getPlayer(other);
