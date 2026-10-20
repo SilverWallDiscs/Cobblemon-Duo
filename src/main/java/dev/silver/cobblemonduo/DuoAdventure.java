@@ -23,6 +23,7 @@ public final class DuoAdventure {
     private static final int MAX_LEVEL = 50;
     private static final long INTERVAL_TICKS = 20L * 60;
     private static long ticks;
+    private static final Map<UUID, net.minecraft.util.math.Vec3d> LAST_POSITIONS = new HashMap<>();
     private static Path file;
     private DuoAdventure() {}
 
@@ -33,6 +34,7 @@ public final class DuoAdventure {
     public static void load(MinecraftServer server) {
         PROGRESS.clear();
         ticks = 0;
+        LAST_POSITIONS.clear();
         file = server.getSavePath(WorldSavePath.ROOT).resolve("cobblemon-duo-adventures.json");
         if (!Files.exists(file)) return;
         try {
@@ -71,6 +73,12 @@ public final class DuoAdventure {
 
     private static void tick(MinecraftServer server) {
         if (++ticks % INTERVAL_TICKS != 0) return;
+        Map<UUID, Boolean> moved = new HashMap<>();
+        for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+            net.minecraft.util.math.Vec3d previous = LAST_POSITIONS.put(p.getUuid(), p.getPos());
+            moved.put(p.getUuid(), previous != null && previous.squaredDistanceTo(p.getPos()) >= 16.0);
+        }
+        LAST_POSITIONS.keySet().retainAll(moved.keySet());
         Set<String> visited = new HashSet<>();
         for (ServerPlayerEntity a : server.getPlayerManager().getPlayerList()) {
             UUID partnerId = CobblemonDuo.partnerOf(a.getUuid());
@@ -80,7 +88,7 @@ public final class DuoAdventure {
             ServerPlayerEntity b = server.getPlayerManager().getPlayer(partnerId);
             if (b == null || a.getWorld() != b.getWorld() || a.squaredDistanceTo(b) > 64 * 64) continue;
             // Both must be moving: idle/AFK proximity does not generate XP.
-            if (!CobblemonDuo.hasMovedRecently(a.getUuid()) || !CobblemonDuo.hasMovedRecently(b.getUuid())) continue;
+            if (!Boolean.TRUE.equals(moved.get(a.getUuid())) || !Boolean.TRUE.equals(moved.get(b.getUuid()))) continue;
             Progress p = PROGRESS.computeIfAbsent(key, k -> new Progress());
             int before = level(p.xp);
             p.minutes++;
