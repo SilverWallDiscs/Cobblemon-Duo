@@ -4,7 +4,7 @@
 
 **Target:** Minecraft **1.21.1**, Fabric, Cobblemon **1.7.3**, Java **21**.
 
-> **Development build / unverified:** Source is available, but compilation and in-game testing have not been confirmed. This is not a stable release.
+> **Development preview:** Compilation with Java 21 and a **production dedicated-server startup** using Minecraft 1.21.1 / Fabric 0.18.4 / Cobblemon 1.7.3 passed in [GitHub Actions #24](https://github.com/SilverWallDiscs/Cobblemon-Duo/actions/runs/39504515050). Two-player gameplay tests are still pending. **Not yet a stable release.**
 
 ## Why this exists
 
@@ -79,18 +79,18 @@ Persistent duo data is saved inside the world:
 
 ## Build (development)
 
-Requires Java 21 and Gradle. The repository currently has no Gradle wrapper; use:
+Requires Java 21, Fabric Loader **0.17.2+** (tested with **0.18.4**), and Gradle. The repository currently has no Gradle wrapper; use:
 
 ```shell
 gradle build
 ```
 
-A GitHub Actions build workflow is included. A successful build has **not yet been verified**. For the built artifact to work on a server, Cobblemon 1.7.3 and Fabric API must be installed there.
+A GitHub Actions build workflow compiles the mod, uploads the runtime JAR, then starts a **real production dedicated Fabric server** with Cobblemon 1.7.3 to verify that the server boots. [Verified successful run #24](https://github.com/SilverWallDiscs/Cobblemon-Duo/actions/runs/39504515050). A boot test is not a multiplayer functional test.\n\nInstall the built **non-sources** JAR in the server's mods folder beside Cobblemon 1.7.3 and Fabric API. Clients still need their normal Cobblemon installation, but **do not need Cobblemon Duo**.
 
 ## Compatibility and test checklist
 
-- [ ] Gradle compilation successful against Cobblemon 1.7.3 Fabric
-- [ ] Clean dedicated-server startup without a client-side installation of Cobblemon Duo
+- [x] Gradle compilation successful against Cobblemon 1.7.3 Fabric
+- [x] Clean dedicated-server startup using only Fabric, Cobblemon, dependencies and Cobblemon Duo on the server ([CI #24](https://github.com/SilverWallDiscs/Cobblemon-Duo/actions/runs/39504515050))
 - [ ] Create duo, test permission-gated disband and offline disband
 - [ ] Merge existing Pokédex records, including encountered/caught/forms/shiny
 - [ ] Catch a Pokémon with partner offline, reconnect partner, verify native Pokédex sync
