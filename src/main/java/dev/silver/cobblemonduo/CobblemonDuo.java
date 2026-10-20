@@ -29,13 +29,15 @@ public final class CobblemonDuo implements ModInitializer {
 
     @Override public void onInitialize() {
         DuoAdventure.initialize();
+        DuoPokedex.initialize();
         ServerLifecycleEvents.SERVER_STARTED.register(s -> {
             server = s;
             storage = s.getSavePath(WorldSavePath.ROOT).resolve("cobblemon-duo.json");
             load();
             DuoAdventure.load(s);
+            DuoPokedex.load(s);
         });
-        ServerLifecycleEvents.SERVER_STOPPING.register(s -> { save(); DuoAdventure.save(); server = null; });
+        ServerLifecycleEvents.SERVER_STOPPING.register(s -> { save(); DuoAdventure.save(); DuoPokedex.save(); server = null; });
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) ->
             dispatcher.register(literal("duo")
                 .then(literal("invite").then(argument("player", StringArgumentType.word()).executes(ctx -> invite(ctx.getSource(), StringArgumentType.getString(ctx, "player")))))
@@ -45,6 +47,7 @@ public final class CobblemonDuo implements ModInitializer {
                     .then(literal("disband").then(argument("player", StringArgumentType.word())
                         .executes(ctx -> adminDisband(ctx.getSource(), StringArgumentType.getString(ctx, "player"))))))
                 .then(literal("info").executes(ctx -> info(ctx.getSource())))
+                .then(literal("pokedex").executes(ctx -> pokedex(ctx.getSource())))
                 .executes(ctx -> info(ctx.getSource()))
             )
         );
@@ -102,11 +105,19 @@ public final class CobblemonDuo implements ModInitializer {
         PARTNERS.remove(target.getUuid());
         PARTNERS.remove(other);
         DuoAdventure.clear(target.getUuid(), other);
+        DuoPokedex.clear(target.getUuid(), other);
         save();
         say(target, "An administrator disbanded your duo.");
         ServerPlayerEntity partner = server.getPlayerManager().getPlayer(other);
         if (partner != null) say(partner, "An administrator disbanded your duo.");
         source.sendFeedback(() -> Text.literal("Duo disbanded by administrator."), true);
+        return 1;
+    }
+    private static int pokedex(ServerCommandSource source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayerEntity p = player(source);
+        UUID partner = PARTNERS.get(p.getUuid());
+        if (partner == null) { say(p, "You are not in a duo."); return 0; }
+        say(p, DuoPokedex.status(p.getUuid(), partner));
         return 1;
     }
     private static int info(ServerCommandSource source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
