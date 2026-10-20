@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "cobblemon-duo",
+  "version": "${version}",
+  "name": "Cobblemon Duo",
+  "description": "A cooperative trainer bond system for Cobblemon.",
+  "authors": [
+    "SilverWallDiscs"
+  ],
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "dev.silver.cobblemonduo.CobblemonDuo"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "cobblemon": ">=1.7.3"
+  }
+}
