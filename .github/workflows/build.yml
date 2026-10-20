@@ -26,3 +26,25 @@ jobs:
           name: cobblemon-duo-dev
           path: build/libs/*.jar
           if-no-files-found: error
+      - name: Dedicated-server boot smoke test
+        shell: bash
+        run: |
+          mkdir -p run
+          printf 'eula=true\n' > run/eula.txt
+          set +e
+          timeout 240s gradle runServer --no-daemon --console plain > run-smoke.log 2>&1
+          result=$?
+          set -e
+          if grep -E 'Done \([0-9.]+s\)!' run-smoke.log; then
+            echo "Dedicated server reached the ready state (timeout exit code: $result)."
+          else
+            echo "Dedicated server failed to reach the ready state (exit code: $result)."
+            tail -n 150 run-smoke.log
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dedicated-server-smoke-log
+          path: run-smoke.log
+          if-no-files-found: ignore
