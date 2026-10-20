@@ -6,7 +6,8 @@ A **server-side** cooperative trainer partnership mod for **Minecraft 1.21.1 / F
 
 ## Current features
 - `/duo invite <player>` — invite another online player (60-second expiry)
-- `/duo accept`, `/duo deny`, `/duo leave`, `/duo info`
+- `/duo accept`, `/duo deny`, `/duo info`
+- Only operators (permission level 2+) can disband a duo with `/duo admin disband <online-player>`; players cannot leave or delete their duo.
 - One partnership per player, stored by UUID
 - Server-world persistent partnerships and exploration progress
 - Shared bond XP and 50 bond levels
@@ -24,6 +25,15 @@ Requires Java 21 and Gradle compatible with Fabric Loom. The project currently d
 - Current storage uses JSON in the world save directory.
 - Progression values are currently hardcoded; configuration and admin tools are planned.
 - Do not assume compatibility with all Fabric/Cobblemon builds until tested.
+
+## Shared Pokédex specification (not implemented yet)
+- Track the union of species registered by either partner while the duo exists.
+- Each species counts only once for the duo, regardless of which member registered it.
+- Store shared discoveries per duo persistently by stable species identifiers.
+- Provide `/duo pokedex` progress and contribution counts.
+- Do not modify or overwrite either player's personal Pokédex.
+- Use Cobblemon 1.7.3 server-side capture/discovery events after API verification.
+- Administrator disbanding should clear or archive duo data according to a future configurable retention policy.
 
 ## Planned gameplay
 - Co-op Pokédex discovery challenges
