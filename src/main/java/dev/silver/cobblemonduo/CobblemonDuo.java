@@ -28,12 +28,14 @@ public final class CobblemonDuo implements ModInitializer {
     private static Path storage;
 
     @Override public void onInitialize() {
+        DuoAdventure.initialize();
         ServerLifecycleEvents.SERVER_STARTED.register(s -> {
             server = s;
             storage = s.getSavePath(WorldSavePath.ROOT).resolve("cobblemon-duo.json");
             load();
+            DuoAdventure.load(s);
         });
-        ServerLifecycleEvents.SERVER_STOPPING.register(s -> { save(); server = null; });
+        ServerLifecycleEvents.SERVER_STOPPING.register(s -> { save(); DuoAdventure.save(); server = null; });
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) ->
             dispatcher.register(literal("duo")
                 .then(literal("invite").then(argument("player", StringArgumentType.word()).executes(ctx -> invite(ctx.getSource(), StringArgumentType.getString(ctx, "player")))))
@@ -88,7 +90,7 @@ public final class CobblemonDuo implements ModInitializer {
         ServerPlayerEntity p = player(source);
         UUID other = PARTNERS.remove(p.getUuid());
         if (other == null) { say(p, "You are not in a duo."); return 0; }
-        PARTNERS.remove(other); save();
+        PARTNERS.remove(other); DuoAdventure.clear(p.getUuid(), other); save();
         ServerPlayerEntity partner = server.getPlayerManager().getPlayer(other);
         if (partner != null) say(partner, p.getName().getString() + " ended your duo.");
         say(p, "Duo ended.");
@@ -100,8 +102,10 @@ public final class CobblemonDuo implements ModInitializer {
         if (other == null) { say(p, "No partner yet. Use /duo invite <player>."); return 1; }
         ServerPlayerEntity online = server.getPlayerManager().getPlayer(other);
         say(p, "Partner: " + (online != null ? online.getName().getString() + " (online)" : other + " (offline)"));
+        say(p, DuoAdventure.status(p.getUuid(), other));
         return 1;
     }
+    public static UUID partnerOf(UUID player) { return PARTNERS.get(player); }
     private static void load() {
         PARTNERS.clear(); INVITES.clear(); INVITE_TIME.clear();
         if (!Files.exists(storage)) return;
