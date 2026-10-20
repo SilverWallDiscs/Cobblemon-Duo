@@ -1,41 +1,103 @@
 # Cobblemon Duo
 
-A **server-side** cooperative trainer partnership mod for **Minecraft 1.21.1 / Fabric**, targeting **Cobblemon 1.7.3**.
+**Cooperative trainer partnerships with shared native Pokédex progression**, built as a **server-side** Fabric mod.
 
-> Development status: early prototype. Not yet compiled or tested in a running server. Do not distribute as a stable release.
+**Target:** Minecraft **1.21.1**, Fabric, Cobblemon **1.7.3**, Java **21**.
 
-## Current features
-- `/duo invite <player>` — invite another online player (60-second expiry)
-- `/duo accept`, `/duo deny`, `/duo info`
-- Only operators (permission level 2+) can disband a duo with `/duo admin disband <online-player>`; players cannot leave or delete their duo.
-- One partnership per player, stored by UUID
-- Server-world persistent partnerships and exploration progress
-- Shared bond XP and 50 bond levels
-- Exploration checks every minute: both players online, same dimension, within 64 blocks, and both moved at least four blocks since last sample
-- Every 15 eligible minutes completes a cooperative exploration milestone
-- Native Cobblemon Pokédex synchronization: when both duo members are online, new encounters/catches are mirrored to the other player's existing Pokédex
-- No client-side installation, assets or custom networking
+> **Development build / unverified:** Source is available, but compilation and in-game testing have not been confirmed. This is not a stable release.
 
-## Build
-Requires Java 21 and Gradle compatible with Fabric Loom. The project currently does not include the Gradle wrapper. Run `gradle build` after installing Gradle and validating the configured dependencies. A successful build has **not** yet been verified.
+## Why this exists
 
-## Design notes
-- Cobblemon is currently a required mod in metadata, but Pokémon capture and battle events are **not yet integrated**.
-- Movement sampling is intended to discourage simple stationary AFK farming; it is not a comprehensive anti-cheat solution.
-- Leaving a duo clears its adventure progression.
-- Current storage uses JSON in the world save directory.
-- Progression values are currently hardcoded; configuration and admin tools are planned.
-- Do not assume compatibility with all Fabric/Cobblemon builds until tested.
+A duo is a permanent trainer partnership, not another party system. Trainers can explore together, combine Pokédex discoveries, level their bond, coordinate catches and take on a timed challenge.
 
-## Native Cobblemon Pokédex sync (experimental)
-- There is no separate duo Pokédex or /duo pokedex command.\n- The existing Cobblemon Pokédex is updated on both clients through Cobblemon's own data manager.\n- Current event forwarding only works while both members are online. Offline queueing and merging pre-existing Pokédex records are pending.\n- The integration has not yet been compiled or tested; it may need API adjustments.\n- Disbanding does not undo entries already learned in either player's native Pokédex.
+Players with standard Cobblemon clients do **not** install Cobblemon Duo separately. No custom screens, asset downloads, custom packets or resource packs are required.
 
-## Planned gameplay
-- Co-op Pokédex discovery challenges
-- Partner Pokémon and type-themed adventure objectives
-- Cooperative trainer battle achievements
-- Configurable progression and admin recovery commands
-- Anti-exploit testing and automated builds
+## Commands
+
+| Command | Permission | Purpose |
+| --- | --- | --- |
+| `/duo invite <player>` | Everyone | Send an invitation to an online player |
+| `/duo accept` | Everyone | Accept pending partnership |
+| `/duo deny` | Everyone | Decline pending partnership |
+| `/duo info` | Everyone | View partner, bond level and adventure statistics |
+| `/duo challenge start` | Everyone in a duo | Invite partner to a Catch Sprint |
+| `/duo challenge accept` | Everyone in a duo | Start an invited Catch Sprint |
+| `/duo challenge deny` | Everyone in a duo | Decline a Catch Sprint |
+| `/duo challenge status` | Everyone in a duo | View challenge progress |
+| `/duo admin disband <name-or-uuid>` | OP level 2+ | End a duo, including when its members are offline |
+
+**Important:** There is deliberately **no** `/duo leave` command. Only operators can disband partnerships.
+
+## Native Cobblemon Pokédex sharing
+
+The existing Cobblemon Pokédex is synchronized between duo partners. There is no additional /duo pokedex command or alternate Pokédex.
+
+- Records from both original Pokédexes are **merged when a duo forms and when either member reconnects**.
+- New encounter and catch updates are replicated through Cobblemon's server-side Pokédex API, **including to the offline partner's data store**.
+- Merge preserves the strongest knowledge (seen / caught) and combines known forms, genders, shiny states and species aspects.
+- Cobblemon's own UI is updated using its normal client sync mechanisms.
+- Learned Pokédex entries stay with each player after an administrator disbands the duo.
+- There is no rollback of already shared discoveries.
+
+These behaviors have been implemented in source code, but still require server testing with Cobblemon 1.7.3. **Back up your world and Cobblemon player data before testing.**
+
+## Cooperative gameplay
+
+### Bond levels
+- 50 bond levels with progressively higher XP requirements.
+- Earn XP each eligible minute adventuring near your partner.
+- Expedition milestone XP every 15 eligible minutes.
+- No proximity XP if either partner stayed still during the last sampling interval.
+
+### Catch synergy
+- Catch different Pokémon species while the partner is nearby for bond XP.
+- A second trainer contributing another species within the teamwork window creates a **Catch Combo** bonus.
+- Daily species limits stop repeated captures of the same species from farming bond XP.
+
+### Catch Sprint
+- One member starts a challenge and the other accepts.
+- Both must remain nearby when contributing captures.
+- Each must catch **2 distinct species**, with **4 unique species across the duo**, within 10 minutes.
+- Completing the goal grants **300 bonus bond XP** by default.
+- A default 2-hour cooldown applies once the challenge starts.
+- Active challenge progress and cooldowns survive server restarts.
+
+## Server configuration
+
+Generated automatically on first server initialization:
+
+`config/cobblemon-duo.json`
+
+Edit it while the server is offline, then restart. Options include proximity distance, invitation expiry, bond rewards, daily catch limits, challenge duration/reward/cooldown, and whether to share encounters, captures and old Pokédex records.
+
+Persistent duo data is saved inside the world:
+- `<world>/cobblemon-duo.json` — relationships and cached player names
+- `<world>/cobblemon-duo-adventures.json` — bond XP and synergy counters
+- `<world>/cobblemon-duo-challenges.json` — catch sprint progress/cooldowns
+
+**Deleting these files will lose mod data.** Do not delete them while the server is running.
+
+## Build (development)
+
+Requires Java 21 and Gradle. The repository currently has no Gradle wrapper; use:
+
+```shell
+gradle build
+```
+
+A GitHub Actions build workflow is included. A successful build has **not yet been verified**. For the built artifact to work on a server, Cobblemon 1.7.3 and Fabric API must be installed there.
+
+## Compatibility and test checklist
+
+- [ ] Gradle compilation successful against Cobblemon 1.7.3 Fabric
+- [ ] Clean dedicated-server startup without a client-side installation of Cobblemon Duo
+- [ ] Create duo, test permission-gated disband and offline disband
+- [ ] Merge existing Pokédex records, including encountered/caught/forms/shiny
+- [ ] Catch a Pokémon with partner offline, reconnect partner, verify native Pokédex sync
+- [ ] Verify no recursion / duplicate update loops
+- [ ] Test Catch Sprint rewards, expiration and restart persistence
+- [ ] Test corrupted data recovery and large player Pokédexes
 
 ## License
-No license has been selected. All rights reserved until the repository owner adds one.
+
+No project license has been selected. All rights reserved unless the repository owner chooses a license.
