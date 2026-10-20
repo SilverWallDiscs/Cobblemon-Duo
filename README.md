@@ -13,6 +13,7 @@ A **server-side** cooperative trainer partnership mod for **Minecraft 1.21.1 / F
 - Shared bond XP and 50 bond levels
 - Exploration checks every minute: both players online, same dimension, within 64 blocks, and both moved at least four blocks since last sample
 - Every 15 eligible minutes completes a cooperative exploration milestone
+- Shared duo Pokédex: unique species credited on Cobblemon capture events, with first-discovery contributions and `/duo pokedex`
 - No client-side installation, assets or custom networking
 
 ## Build
@@ -26,14 +27,14 @@ Requires Java 21 and Gradle compatible with Fabric Loom. The project currently d
 - Progression values are currently hardcoded; configuration and admin tools are planned.
 - Do not assume compatibility with all Fabric/Cobblemon builds until tested.
 
-## Shared Pokédex specification (not implemented yet)
+## Shared Pokédex behavior (initial implementation)
 - Track the union of species registered by either partner while the duo exists.
 - Each species counts only once for the duo, regardless of which member registered it.
 - Store shared discoveries per duo persistently by stable species identifiers.
 - Provide `/duo pokedex` progress and contribution counts.
 - Do not modify or overwrite either player's personal Pokédex.
-- Use Cobblemon 1.7.3 server-side capture/discovery events after API verification.
-- Administrator disbanding should clear or archive duo data according to a future configurable retention policy.
+- Uses the Cobblemon 1.7.3 `POKEMON_CAPTURED` event; historical captures, trades and evolutions are not currently imported.
+- Administrator disbanding currently clears shared Pokédex and adventure data; an archival policy is planned.
 
 ## Planned gameplay
 - Co-op Pokédex discovery challenges
