@@ -30,6 +30,7 @@ public final class CobblemonDuo implements ModInitializer {
     private static Path storage;
 
     @Override public void onInitialize() {
+        DuoConfig.load();
         DuoAdventure.initialize();
         DuoPokedex.initialize();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, currentServer) -> {
@@ -75,14 +76,14 @@ public final class CobblemonDuo implements ModInitializer {
         INVITES.put(b, a);
         INVITE_TIME.put(b, System.currentTimeMillis());
         say(sender, "Invitation sent to " + target.getName().getString() + ".");
-        say(target, sender.getName().getString() + " invited you to form a duo! Use /duo accept or /duo deny (expires in 60s).");
+        say(target, sender.getName().getString() + " invited you to form a duo! Use /duo accept or /duo deny (expires in " + DuoConfig.INSTANCE.inviteExpirySeconds + "s).");
         return 1;
     }
     private static int accept(ServerCommandSource source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayerEntity target = player(source);
         UUID b = target.getUuid(), a = INVITES.remove(b);
         Long time = INVITE_TIME.remove(b);
-        if (a == null || time == null || System.currentTimeMillis() - time > 60_000) { say(target, "No valid invitation."); return 0; }
+        if (a == null || time == null || System.currentTimeMillis() - time > DuoConfig.INSTANCE.inviteExpirySeconds * 1000L) { say(target, "No valid invitation."); return 0; }
         ServerPlayerEntity sender = server.getPlayerManager().getPlayer(a);
         if (sender == null || PARTNERS.containsKey(a) || PARTNERS.containsKey(b)) { say(target, "The invitation is no longer available."); return 0; }
         PARTNERS.put(a, b); PARTNERS.put(b, a); save();
